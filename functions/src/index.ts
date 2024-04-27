@@ -1,24 +1,36 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 // The Cloud Functions for Firebase SDK to create Cloud Functions and triggers.
 import * as functions from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, FieldValue, Filter } from "firebase-admin/firestore";
 
 admin.initializeApp();
+const db = getFirestore();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+export const addUserDefaultDepartment = functions.firestore.document("/User/{documentId}")
+    .onCreate(async (snapshot, context) => {  
+        // Grab the current value of what was written to Firestore.
+        const topicID = snapshot.get('topicID');
+        const userID = snapshot.id;
+        const communityRef = await db.collection("Community").where('topicID', '==', topicID).get();
+        let communityId: String = "";
+        if (communityRef.empty) {
+            console.log('No matching documents.');
+            return;
+        }  
+          
+        communityRef.forEach(doc => {
+            console.log(doc.id, '=>', doc.data());
+            communityId = doc.id;
+        });
+        const communityMemberRef = db.collection("CommunityMember").doc(userID);
+        return await communityMemberRef.update({
+            groupsRef: FieldValue.arrayUnion(communityId)
+        });
+    });
+
 
 // Take the text parameter passed to this HTTP endpoint and insert it into
 // Firestore under the path /messages/:documentId/original
