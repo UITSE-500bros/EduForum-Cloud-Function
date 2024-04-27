@@ -12,9 +12,9 @@ const db = getFirestore();
 export const addUserDefaultDepartment = functions.firestore.document("/User/{documentId}")
     .onCreate(async (snapshot, context) => {  
         // Grab the current value of what was written to Firestore.
-        const topicID = snapshot.get('topicID');
+        const department = snapshot.get('department');
         const userID = snapshot.id;
-        const communityRef = await db.collection("Community").where('topicID', '==', topicID).get();
+        const communityRef = await db.collection("Community").where('department', '==', department).get();
         let communityId: String = "";
         if (communityRef.empty) {
             console.log('No matching documents.');
