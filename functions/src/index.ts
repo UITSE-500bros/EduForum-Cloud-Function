@@ -4,19 +4,21 @@ import { onRequest } from "firebase-functions/v2/https";
 
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
-import {
-  getFirestore,
-  FieldValue,
-} from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+
+// Crypto
+import * as crypto from "node:crypto";
 
 admin.initializeApp();
 const db = getFirestore();
+
+const NUMBER_OF_DIGIT = 5;
 
 export const addUserDefaultDepartment = functions.firestore
   .document("/User/{documentId}")
   .onCreate(async (snapshot, context) => {
     const department = snapshot.get("department");
-    const userID = context.params.documentId; 
+    const userID = context.params.documentId;
     const communityQuerySnapshot = await db
       .collection("Community")
       .where("department", "==", department)
@@ -32,10 +34,44 @@ export const addUserDefaultDepartment = functions.firestore
     // Reference to the CommunityMember document for this user
     const communityMemberRef = db.collection("CommunityMember").doc(userID);
 
-    return communityMemberRef.set({
-      groupsRef: FieldValue.arrayUnion(communityId),
-    }, { merge: true });
+    return communityMemberRef.set(
+      {
+        groupsRef: FieldValue.arrayUnion(communityId),
+      },
+      { merge: true }
+    );
   });
+
+export const generateCommunityCode = functions.firestore
+  .document("Community/{communityID}")
+  .onCreate(async (snapshot, context) => {
+    let inviteCode = "ABCDEF";
+    while (1) {
+      inviteCode = generateAlphanumericCode(NUMBER_OF_DIGIT);
+      const communityQuerySnapshot = await db
+        .collection("Community")
+        .where("inviteCode", "==", inviteCode)
+        .get();
+      if (communityQuerySnapshot.empty) {
+        console.log("Invite code is valid");
+        break;
+      } else {
+        console.log("Invite code is invalid, regenerate invite code");
+      }
+    }
+    return snapshot.ref.set({ inviteCode }, { merge: true });
+  });
+
+function generateAlphanumericCode(length: number) {
+  const charset =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    result += charset[bytes[i] % charset.length];
+  }
+  return result;
+}
 
 // Take the text parameter passed to this HTTP endpoint and insert it into
 // Firestore under the path /messages/:documentId/original
