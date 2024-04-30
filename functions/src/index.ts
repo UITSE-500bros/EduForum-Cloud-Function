@@ -29,17 +29,37 @@ export const addUserDefaultDepartment = functions.firestore
       return;
     }
 
-    const communityId = communityQuerySnapshot.docs[0].id;
+    
+    const community = {
+      communityId: communityQuerySnapshot.docs[0].id,
+      name: communityQuerySnapshot.docs[0].data().name,
+      department: communityQuerySnapshot.docs[0].data().department,
+    };
 
     // Reference to the CommunityMember document for this user
     const communityMemberRef = db.collection("CommunityMember").doc(userID);
 
     return communityMemberRef.set(
       {
-        groupsRef: FieldValue.arrayUnion(communityId),
+        communities: FieldValue.arrayUnion(community),
       },
       { merge: true }
     );
+  });
+
+  export const createCommunityMember = functions.auth.user().onCreate(async (user) => {
+    const communityMemberRef = db.collection("CommunityMember").doc(user.uid);
+    try {
+      await communityMemberRef.set(
+        {
+          communities: [],
+        },
+        { merge: true }
+      );
+      console.log("CommunityMember document created for user:", user.uid);
+    } catch (error) {
+      console.error("Error creating CommunityMember document:", error);
+    }
   });
 
 export const generateCommunityCode = functions.firestore
