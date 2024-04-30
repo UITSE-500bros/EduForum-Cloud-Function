@@ -34,6 +34,31 @@ export const addUserDefaultDepartment = functions.firestore
       communityId: communityQuerySnapshot.docs[0].id,
       name: communityQuerySnapshot.docs[0].data().name,
       department: communityQuerySnapshot.docs[0].data().department,
+      description: communityQuerySnapshot.docs[0].data().description,
+    };
+
+    // Reference to the CommunityMember document for this user
+    const communityMemberRef = db.collection("CommunityMember").doc(userID);
+
+    return communityMemberRef.set(
+      {
+        communities: FieldValue.arrayUnion(community),
+      },
+      { merge: true }
+    );
+  });
+
+  export const addAdminToCommunity = functions.firestore
+  .document("/Community/{documentId}")
+  .onCreate(async (snapshot, context) => {
+    const userID = snapshot.get("adminList")[0];
+    
+    
+    const community = {
+      communityId: snapshot.id,
+      name: snapshot.data().name,
+      department: snapshot.data().department,
+      description: snapshot.data().description,
     };
 
     // Reference to the CommunityMember document for this user
