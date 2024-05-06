@@ -15,10 +15,28 @@ const db = getFirestore();
 
 // Functions
 
+// add createTime when a new Post is created
+
+export const addTimeCreatedToPost = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const postRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID);
+
+    return await postRef.update({
+      timeCreated: FieldValue.serverTimestamp(),
+    });
+  });
+
 // add sample - announcement category everytime a new community is created
 
 export const addSampleCategory = functions.firestore
-  .document("/Community/{communityId}")
+  .document("/Community/{communityID}")
   .onCreate(async (snapshot, context) => {
     const data = {
       title: "Thông báo",
@@ -27,7 +45,7 @@ export const addSampleCategory = functions.firestore
 
     return await db
       .collection("Community")
-      .doc(context.params.communityId)
+      .doc(context.params.communityID)
       .collection("Category")
       .add(data);
   });
