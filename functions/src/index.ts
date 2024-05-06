@@ -1,6 +1,5 @@
 // The Cloud Functions for Firebase SDK to create Cloud Functions and triggers.
 import * as functions from "firebase-functions";
-import { onRequest } from "firebase-functions/v2/https";
 
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
@@ -9,11 +8,31 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 // Crypto
 import * as crypto from "node:crypto";
 
+const NUMBER_OF_DIGIT = 5;
+// App init
 admin.initializeApp();
 const db = getFirestore();
 
-const NUMBER_OF_DIGIT = 5;
+// Functions
 
+// add sample - announcement category everytime a new community is created
+
+export const addSampleCategory = functions.firestore
+  .document("/Community/{communityId}")
+  .onCreate(async (snapshot, context) => {
+    const data = {
+      title: "Thông báo",
+      isAnnouncement: true,
+    };
+
+    return await db
+      .collection("Community")
+      .doc(context.params.communityId)
+      .collection("Category")
+      .add(data);
+  });
+
+// add user to their default department
 export const addUserDefaultDepartment = functions.firestore
   .document("/User/{documentId}")
   .onCreate(async (snapshot, context) => {
@@ -29,7 +48,6 @@ export const addUserDefaultDepartment = functions.firestore
       return;
     }
 
-    
     const community = {
       communityId: communityQuerySnapshot.docs[0].id,
       name: communityQuerySnapshot.docs[0].data().name,
@@ -48,12 +66,12 @@ export const addUserDefaultDepartment = functions.firestore
     );
   });
 
-  export const addAdminToCommunity = functions.firestore
+// add community admin
+export const addAdminToCommunity = functions.firestore
   .document("/Community/{documentId}")
   .onCreate(async (snapshot, context) => {
     const userID = snapshot.get("adminList")[0];
-    
-    
+
     const community = {
       communityId: snapshot.id,
       name: snapshot.data().name,
@@ -72,7 +90,10 @@ export const addUserDefaultDepartment = functions.firestore
     );
   });
 
-  export const createCommunityMember = functions.auth.user().onCreate(async (user) => {
+// create new communitymember document
+export const createCommunityMember = functions.auth
+  .user()
+  .onCreate(async (user) => {
     const communityMemberRef = db.collection("CommunityMember").doc(user.uid);
     try {
       await communityMemberRef.set(
@@ -117,55 +138,3 @@ function generateAlphanumericCode(length: number) {
   }
   return result;
 }
-
-// Take the text parameter passed to this HTTP endpoint and insert it into
-// Firestore under the path /messages/:documentId/original
-export const addMessage = onRequest(async (req, res) => {
-  // Grab the text parameter.
-  const original = req.query.text;
-  if (typeof original !== "string") {
-    res.status(400).send("Text parameter is required and must be a string.");
-    return;
-  }
-  // Push the new message into Firestore using the Firebase Admin SDK.
-  try {
-    const writeResult = await getFirestore()
-      .collection("messages")
-      .add({ original: original });
-    // Send back a message that we've successfully written the message
-    res.json({ result: `Message with ID: ${writeResult.id} added.` });
-  } catch (error) {
-    functions.logger.error("Failed to add message", error);
-    res.status(500).send("Failed to add message");
-  }
-});
-
-export const makeUppercase = functions.firestore
-  .document("/messages/{documentId}")
-  .onCreate((snapshot, context) => {
-    // Corrected to use onCreate for Firestore triggers
-    // Grab the current value of what was written to Firestore.
-    const original = snapshot.data()?.original;
-
-    if (typeof original !== "string") {
-      // If original is not a string, log a message and exit
-      functions.logger.log("Original data is not a string, unable to process.");
-      return null;
-    }
-
-    // Log the document ID and original text
-    functions.logger.log("Uppercasing", context.params.documentId, original);
-
-    // Convert text to uppercase
-    const uppercase = original.toUpperCase();
-
-    // You must return a Promise when performing asynchronous tasks inside a function
-    // such as writing to Firestore.
-    // Setting an 'uppercase' field in Firestore document returns a Promise.
-    return snapshot.ref.set({ uppercase }, { merge: true });
-  });
-
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
