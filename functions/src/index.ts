@@ -33,6 +33,23 @@ export const addTimeCreatedToPost = functions.firestore
     });
   });
 
+// add lastModified when a post is edited
+export const addLastModifiedToEditedPost = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onUpdate(async (change, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const postRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID);
+
+    return await postRef.update({
+      lastModified: FieldValue.serverTimestamp(),
+    });
+  })
+
 // add sample - announcement category everytime a new community is created
 
 export const addSampleCategory = functions.firestore
