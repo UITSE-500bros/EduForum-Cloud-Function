@@ -15,6 +15,15 @@ const db = getFirestore();
 
 // Functions
 
+// delete all comments and votes subcollection when a post is deleted
+
+// export const deletePostSubcollection = functions.firestore
+//   .document("/Community/{communityID}/Post/{postID}")
+//   .onDelete(async (snapshot, context) => {
+//     const deletedValue = snapshot.data();
+
+//   })
+
 // add createTime when a new Post is created
 
 export const addTimeCreatedToPost = functions.firestore
