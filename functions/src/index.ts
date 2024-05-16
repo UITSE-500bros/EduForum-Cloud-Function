@@ -15,6 +15,35 @@ const db = getFirestore();
 
 // Functions
 
+// add total new post in a community when a new post is created
+export const addTotalNewPost = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const communityRef = db.collection("Community").doc(communityID);
+    await communityRef.get().then(async (doc) => {
+      if (!doc.exists) {
+        console.log("No such document!");
+      } else {
+        const data = doc.data();
+        if (data) {
+          const members = data.userList;
+          const batch = db.batch();
+          members.forEach((userID: string) => {
+            const newPostRef = db.collection("NewPost").doc(userID);
+            batch.set(newPostRef, {
+              totalNewPost: FieldValue.increment(1),
+            });
+          });
+          await batch.commit();
+        } else {
+          console.log("No data in document!");
+        }
+      }
+    });
+
+  });
+
 // update total replies, comments when a new comment is created
 export const updateTotalCommentsAndReplies = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
@@ -164,7 +193,10 @@ export const addLastModifiedToEditedPost = functions.firestore
   .onUpdate(async (change, context) => {
     const data = change.after.data();
     const previousData = change.before.data();
-    if (data.lastModified !== previousData.lastModified || data.totalComment !== previousData.totalComment) {
+    if (
+      data.lastModified !== previousData.lastModified ||
+      data.totalComment !== previousData.totalComment
+    ) {
       return;
     }
     const communityID = context.params.communityID;
@@ -180,13 +212,16 @@ export const addLastModifiedToEditedPost = functions.firestore
     });
   });
 
-  // add last modified when a comment is edited
-  export const addLastModifiedToEditedComment = functions.firestore
+// add last modified when a comment is edited
+export const addLastModifiedToEditedComment = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
   .onUpdate(async (change, context) => {
     const data = change.after.data();
     const previousData = change.before.data();
-    if (data.lastModified !== previousData.lastModified || data.totalReply !== previousData.totalReply) {
+    if (
+      data.lastModified !== previousData.lastModified ||
+      data.totalReply !== previousData.totalReply
+    ) {
       return;
     }
     const communityID = context.params.communityID;
