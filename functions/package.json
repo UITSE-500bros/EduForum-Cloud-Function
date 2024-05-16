@@ -6,7 +6,8 @@
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
-    "start": "npm run build && firebase emulators:start --import ~/firebaseEmulatorData --export-on-exit ~/firebaseEmulatorData",
+    "start:mac": "npm run build && firebase emulators:start --import ~/firebaseEmulatorData --export-on-exit ~/firebaseEmulatorData",
+    "start:windows": "npm run build && firebase emulators:start --import %USERPROFILE%/firebaseEmulatorData --export-on-exit %USERPROFILE%/firebaseEmulatorData",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },

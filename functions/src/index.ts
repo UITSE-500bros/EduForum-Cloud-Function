@@ -15,6 +15,99 @@ const db = getFirestore();
 
 // Functions
 
+// update total replies, comments when a new comment is created
+export const updateTotalCommentsAndReplies = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const commentID = snapshot.data().replyCommentID;
+    if (commentID) {
+      const commentRef = db
+        .collection("Community")
+        .doc(communityID)
+        .collection("Post")
+        .doc(postID)
+        .collection("Comment")
+        .doc(commentID);
+
+      await commentRef.update({
+        totalReply: FieldValue.increment(1),
+      });
+    } else {
+      console.log("replyCommentID does not exist");
+    }
+
+    const postRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID);
+
+    await postRef.update({
+      totalComment: FieldValue.increment(1),
+    });
+  });
+
+// update total replies when a comment is deleted
+export const updateTotalRepliesWhenCommentDeleted = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onDelete(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const commentID = snapshot.data().replyCommentID;
+    if (commentID) {
+      const commentRef = db
+        .collection("Community")
+        .doc(communityID)
+        .collection("Post")
+        .doc(postID)
+        .collection("Comment")
+        .doc(commentID);
+
+      await commentRef.update({
+        totalReply: FieldValue.increment(-1),
+      });
+    } else {
+      console.log("replyCommentID does not exist");
+    }
+
+    const postRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID);
+
+    await postRef.update({
+      totalComment: FieldValue.increment(-1),
+    });
+  });
+
+// update total post when a new post is created
+
+export const updateTotalPostCreated = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const communityRef = db.collection("Community").doc(communityID);
+
+    return await communityRef.update({
+      totalPost: FieldValue.increment(1),
+    });
+  });
+
+// update total post when a post is deleted
+export const updateTotalPostDeleted = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onDelete(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const communityRef = db.collection("Community").doc(communityID);
+
+    return await communityRef.update({
+      totalPost: FieldValue.increment(-1),
+    });
+  });
+
 // delete all comments and votes subcollection when a post is deleted
 
 // export const deletePostSubcollection = functions.firestore
@@ -23,6 +116,8 @@ const db = getFirestore();
 //     const deletedValue = snapshot.data();
 
 //   })
+
+//
 
 // add createTime when a new Post is created
 
@@ -42,11 +137,36 @@ export const addTimeCreatedToPost = functions.firestore
     });
   });
 
+// add createTime when a new Comment is created
+export const addTimeCreatedToComment = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const commentID = context.params.commentID;
+    const commentRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID)
+      .collection("Comment")
+      .doc(commentID);
+
+    return await commentRef.update({
+      timeCreated: FieldValue.serverTimestamp(),
+    });
+  });
+
 // add lastModified when a post is edited
 
 export const addLastModifiedToEditedPost = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
   .onUpdate(async (change, context) => {
+    const data = change.after.data();
+    const previousData = change.before.data();
+    if (data.lastModified !== previousData.lastModified || data.totalComment !== previousData.totalComment) {
+      return;
+    }
     const communityID = context.params.communityID;
     const postID = context.params.postID;
     const postRef = db
@@ -56,6 +176,30 @@ export const addLastModifiedToEditedPost = functions.firestore
       .doc(postID);
 
     return await postRef.update({
+      lastModified: FieldValue.serverTimestamp(),
+    });
+  });
+
+  // add last modified when a comment is edited
+  export const addLastModifiedToEditedComment = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onUpdate(async (change, context) => {
+    const data = change.after.data();
+    const previousData = change.before.data();
+    if (data.lastModified !== previousData.lastModified || data.totalReply !== previousData.totalReply) {
+      return;
+    }
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const commentRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID)
+      .collection("Comment")
+      .doc(context.params.commentID);
+
+    return await commentRef.update({
       lastModified: FieldValue.serverTimestamp(),
     });
   });
