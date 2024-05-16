@@ -23,14 +23,26 @@ export const addTotalNewPost = functions.firestore
     const communityRef = db.collection("Community").doc(communityID);
     await communityRef.get().then(async (doc) => {
       if (!doc.exists) {
-        console.log("No such document!");
+        console.log("No such document! (Community)");
       } else {
         const data = doc.data();
         if (data) {
           const members = data.userList;
           const batch = db.batch();
-          members.forEach((userID: string) => {
-            const newPostRef = db.collection("NewPost").doc(userID);
+          await members.forEach(async (userID: string) => {
+            const newPostQuery = db
+              .collection("NewPost")
+              .where("userID", "==", userID)
+              .where("communityID", "==", communityID)
+              .limit(1);
+            const querySnapshot = await newPostQuery.get();
+            if (querySnapshot.empty) {
+              console.log("No matching documents. (NewPost)");
+              return;
+            }
+
+            const newPostRef = querySnapshot.docs[0].ref;
+
             batch.set(newPostRef, {
               totalNewPost: FieldValue.increment(1),
             });
@@ -41,7 +53,6 @@ export const addTotalNewPost = functions.firestore
         }
       }
     });
-
   });
 
 // update total replies, comments when a new comment is created
