@@ -15,6 +15,60 @@ const db = getFirestore();
 
 // Functions
 
+// create Notification for new reply
+async function createNotificationForReply(reply: any) {
+  // get the parent comment
+  const parentCommentRef = db
+    .collection("Community")
+    .doc(reply.communityID)
+    .collection("Post")
+    .doc(reply.postID)
+    .collection("Comment")
+    .doc(reply.replyCommentID);
+
+  const parentCommentDoc = await parentCommentRef.get();
+  const parentComment = parentCommentDoc.data();
+  if (!parentComment) {
+    console.log("No data in document! (Parent Comment)");
+    return;
+  }
+
+  // check if the reply is created by the parent comment creator, if it is, do not notify
+  if (reply.creator.creatorID === parentComment.creator.creatorID) {
+    return;
+  }
+  // notify the parent comment creator
+  const notificationParentCommentRef = db
+    .collection("User")
+    .doc(parentComment.creator.creatorID)
+    .collection("Notification")
+    .doc();
+
+  const notificationParentCommentData = {
+    type: 3, // 3: new reply of my comment
+    community: {
+      communityID: reply.communityID,
+      name: reply.communityName,
+    },
+    triggeredBy: {
+      userID: reply.creator.creatorID,
+      name: reply.creator.name,
+      profilePicture: reply.creator.profilePicture,
+    },
+    post: {
+      postID: reply.postID,
+    },
+    comment: {
+      commentID: reply.replyCommentID,
+      content: reply.content,
+    },
+    timestamp: FieldValue.serverTimestamp(),
+    isRead: false,
+  };
+
+  return await notificationParentCommentRef.set(notificationParentCommentData);
+}
+
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
@@ -30,6 +84,7 @@ export const createNewCommentNotification = functions.firestore
 
     // check if the comment is a reply, if it is, do not notify
     if (comment.replyCommentID) {
+      await createNotificationForReply(comment);
       return;
     }
 
