@@ -15,12 +15,126 @@ const db = getFirestore();
 
 // Functions
 
+// create Notification for new comment
+export const createNewCommentNotification = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const commentID = context.params.commentID;
+    const comment = snapshot.data();
+    if (!comment) {
+      console.log("No data in document! (Comment)");
+      return;
+    }
+
+    // check if the comment is a reply, if it is, do not notify
+    if (comment.replyCommentID) {
+      return;
+    }
+
+    const postRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID);
+    const postDoc = await postRef.get();
+    if (!postDoc.exists) {
+      console.log("No such document! (Post)");
+      return;
+    }
+    const post = postDoc.data();
+    if (!post) {
+      console.log("No data in document! (Post)");
+      return;
+    }
+    const creator = post.creator;
+
+    // check if the comment is created by the post creator, if it is, do not notify
+    if (comment.creator.creatorID === creator.creatorID) {
+      return;
+    }
+    // notify the post creator
+    const notificationCreatorRef = db
+      .collection("User")
+      .doc(creator.creatorID)
+      .collection("Notification")
+      .doc();
+    const notificationCreatorData = {
+      type: 1, // 1: new comment of my post
+      community: {
+        communityID,
+        name: post.community.name,
+      },
+      triggeredBy: {
+        userID: comment.creator.creatorID,
+        name: comment.creator.name,
+        profilePicture: comment.creator.profilePicture,
+      },
+      post: {
+        postID,
+      },
+      comment: {
+        commentID,
+        content: comment.content,
+      },
+      timestamp: FieldValue.serverTimestamp(),
+      isRead: false,
+    };
+
+    const batch = db.batch();
+    batch.set(notificationCreatorRef, notificationCreatorData);
+
+    // notify the subscribers - exclude the post creator
+
+    // get the post subscribers
+    const postSubcribersQuery = await db
+      .collection("PostSubscription")
+      .where("postID", "==", postID)
+      .where("userID", "!=", creator.creatorID)
+      .where("communityID", "==", communityID)
+      .get();
+
+    if (!postSubcribersQuery.empty) {
+      // send notification to the subscribers
+      postSubcribersQuery.forEach((doc) => {
+        const notificationSubscriberRef = db
+          .collection("User")
+          .doc(doc.data().userID)
+          .collection("Notification")
+          .doc();
+        const notificationSubscriberData = {
+          type: 5, // 5: new comment of post I subscribed
+          community: {
+            communityID,
+            name: post.community.name,
+          },
+          triggeredBy: {
+            userID: comment.creator.creatorID,
+            name: comment.creator.name,
+            profilePicture: comment.creator.profilePicture,
+          },
+          post: {
+            postID,
+          },
+          comment: {
+            commentID,
+            content: comment.content,
+          },
+          timestamp: FieldValue.serverTimestamp(),
+          isRead: false,
+        };
+        batch.set(notificationSubscriberRef, notificationSubscriberData);
+      });
+    }
+
+    return batch.commit();
+  });
+
 // create Notification for announcement post
 async function createNewAnnouncementNotification(community: any, post: any) {
   const communityID = community.id;
   const communityName = community.name;
-
-
 
   const members = community.userList;
 
@@ -53,10 +167,10 @@ async function createNewAnnouncementNotification(community: any, post: any) {
   });
 
   return batch.commit();
-
 }
 
 // create Notification when a new post is created
+// MISSING: AUTO NOTIFY ADMIN FOR EVERY NEW POST
 export const createNewPostNotification = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
   .onCreate(async (snapshot, context) => {
