@@ -15,6 +15,47 @@ const db = getFirestore();
 
 // Functions
 
+// create Notification for announcement post
+async function createNewAnnouncementNotification(community: any, post: any) {
+  const communityID = community.id;
+  const communityName = community.name;
+
+
+
+  const members = community.userList;
+
+  const batch = db.batch();
+  await members.forEach(async (userID: string) => {
+    const notificationRef = db
+      .collection("User")
+      .doc(userID)
+      .collection("Notification")
+      .doc();
+    const notificationData = {
+      type: 4, // 4: announcement
+      community: {
+        communityID,
+        name: communityName,
+      },
+      triggeredBy: {
+        userID: post.creator.creatorID,
+        name: post.creator.name,
+        profilePicture: post.creator.profilePicture,
+      },
+      post: {
+        postID: post.id,
+        title: post.title,
+      },
+      timestamp: FieldValue.serverTimestamp(),
+      isRead: false,
+    };
+    batch.set(notificationRef, notificationData);
+  });
+
+  return batch.commit();
+
+}
+
 // create Notification when a new post is created
 export const createNewPostNotification = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
@@ -43,6 +84,7 @@ export const createNewPostNotification = functions.firestore
         .doc(category.id);
       const categoryDoc = await categoryRef.get();
       if (categoryDoc.data()?.isAnnouncement) {
+        await createNewAnnouncementNotification(community, post);
         return;
       }
     }
