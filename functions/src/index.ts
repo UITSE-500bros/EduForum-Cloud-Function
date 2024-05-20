@@ -15,6 +15,88 @@ const db = getFirestore();
 
 // Functions
 
+// create Notification when a new post is created
+export const createNewPostNotification = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const postID = context.params.postID;
+    const post = snapshot.data();
+
+    // get community name
+    const communityRef = db.collection("Community").doc(communityID);
+    const communityDoc = await communityRef.get();
+    if (!communityDoc.exists) {
+      console.log("No such document! (Community)");
+      return;
+    }
+    const community = communityDoc.data();
+    const communityName = community?.name;
+
+    const postCategory = post.category;
+    for (const category of postCategory) {
+      // check if the category is announcement
+      const categoryRef = db
+        .collection("Community")
+        .doc(communityID)
+        .collection("Category")
+        .doc(category.id);
+      const categoryDoc = await categoryRef.get();
+      if (categoryDoc.data()?.isAnnouncement) {
+        return;
+      }
+    }
+
+    const subscriptionCommunityRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Subscription")
+      .doc("subscription");
+    const subscriptionCommunityDoc = await subscriptionCommunityRef.get();
+    if (!subscriptionCommunityDoc.exists) {
+      console.log("No such document! (subscription)");
+      return;
+    }
+
+    const subscriptionCommunity = subscriptionCommunityDoc.data();
+    if (!subscriptionCommunity) {
+      console.log("No data in document!");
+      return;
+    }
+
+    const members = subscriptionCommunity.userList;
+
+    const batch = db.batch();
+    await members.forEach(async (userID: string) => {
+      const notificationRef = db
+        .collection("User")
+        .doc(userID)
+        .collection("Notification")
+        .doc();
+      const notificationData = {
+        type: 2, // 2: new post
+        community: {
+          communityID,
+          name: communityName,
+        },
+        triggeredBy: {
+          userID: post.creator.creatorID,
+          name: post.creator.name,
+          profilePicture: post.creator.profilePicture,
+        },
+        post: {
+          postID: postID,
+          title: post.title,
+        },
+        timestamp: FieldValue.serverTimestamp(),
+        isRead: false,
+      };
+      batch.set(notificationRef, notificationData);
+    });
+
+    return batch.commit();
+  });
+
 // add total new post in a community when a new post is created
 export const addTotalNewPost = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
@@ -298,6 +380,22 @@ export const addUserDefaultDepartment = functions.firestore
 
     return communityRef.update({
       userList: FieldValue.arrayUnion(userID),
+    });
+  });
+
+// create empty subscription subcollection when new community is created
+export const createSubscriptionSubcollection = functions.firestore
+  .document("/Community/{communityID}")
+  .onCreate(async (snapshot, context) => {
+    const communityID = context.params.communityID;
+    const subscriptionRef = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Subscription")
+      .doc("subscription");
+
+    return subscriptionRef.set({
+      userList: [],
     });
   });
 
