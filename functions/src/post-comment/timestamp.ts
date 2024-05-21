@@ -51,7 +51,8 @@ export const addLastModifiedToEditedPostFunction = async (
   const previousData = change.before.data();
   if (
     data.lastModified !== previousData.lastModified ||
-    data.totalComment !== previousData.totalComment
+    data.totalComment !== previousData.totalComment || 
+    data.creator !== previousData.creator
   ) {
     return;
   }
@@ -77,7 +78,8 @@ export const addLastModifiedToEditedCommentFunction = async (
   const previousData = change.before.data();
   if (
     data.lastModified !== previousData.lastModified ||
-    data.totalReply !== previousData.totalReply
+    data.totalReply !== previousData.totalReply ||
+    data.creator !== previousData.creator
   ) {
     return;
   }

@@ -28,6 +28,7 @@ import {
   createSubscriptionSubcollectionFunction,
   generateCommunityCodeFunction,
 } from "./community/community-setup";
+import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
@@ -114,3 +115,8 @@ export const createSubscriptionSubcollection = functions.firestore
 export const generateCommunityCode = functions.firestore
   .document("Community/{communityID}")
   .onCreate(generateCommunityCodeFunction);
+
+// update post when creator update their profile picture, name, department
+export const updatePostAndCommentWhenCreatorUpdateProfile = functions.firestore
+  .document("/User/{userID}")
+  .onUpdate(updatePostAndCommentWhenCreatorUpdateProfileFunction);
