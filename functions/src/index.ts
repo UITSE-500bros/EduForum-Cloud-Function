@@ -29,6 +29,7 @@ import {
   generateCommunityCodeFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
+import { updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
@@ -116,7 +117,12 @@ export const generateCommunityCode = functions.firestore
   .document("Community/{communityID}")
   .onCreate(generateCommunityCodeFunction);
 
-// update post when creator update their profile picture, name, department
+// update post and comment when creator update their profile picture, name, department
 export const updatePostAndCommentWhenCreatorUpdateProfile = functions.firestore
   .document("/User/{userID}")
   .onUpdate(updatePostAndCommentWhenCreatorUpdateProfileFunction);
+
+// update member approval when a user update their profile
+export const updateMemberApprovalWhenUserUpdateProfile = functions.firestore
+  .document("/User/{userID}")
+  .onUpdate(updateMemberApprovalWhenUserUpdateProfileFunction);
