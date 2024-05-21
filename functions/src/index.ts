@@ -7,6 +7,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import * as crypto from "node:crypto";
 
 const NUMBER_OF_DIGIT = 5;
+const BATCH_SIZE = 20;
 
 // App init
 
@@ -376,7 +377,7 @@ export const updateTotalCommentsAndReplies = functions.firestore
       .doc(communityID)
       .collection("Post")
       .doc(postID);
-
+    
     await postRef.update({
       totalComment: FieldValue.increment(1),
     });
@@ -386,34 +387,24 @@ export const updateTotalCommentsAndReplies = functions.firestore
 export const updateTotalRepliesWhenCommentDeleted = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
   .onDelete(async (snapshot, context) => {
-    const communityID = context.params.communityID;
-    const postID = context.params.postID;
+    const { communityID, postID } = context.params;
     const commentID = snapshot.data().replyCommentID;
-    if (commentID) {
-      const commentRef = db
-        .collection("Community")
-        .doc(communityID)
-        .collection("Post")
-        .doc(postID)
-        .collection("Comment")
-        .doc(commentID);
 
-      await commentRef.update({
-        totalReply: FieldValue.increment(-1),
-      });
+    const communityRef = db.collection("Community").doc(communityID);
+    const postRef = communityRef.collection("Post").doc(postID);
+
+    const updatePromises = [];
+
+    if (commentID) {
+      const commentRef = postRef.collection("Comment").doc(commentID);
+      updatePromises.push(commentRef.update({ totalReply: FieldValue.increment(-1) }));
     } else {
       console.log("replyCommentID does not exist");
     }
 
-    const postRef = db
-      .collection("Community")
-      .doc(communityID)
-      .collection("Post")
-      .doc(postID);
+    updatePromises.push(postRef.update({ totalComment: FieldValue.increment(-1) }));
 
-    await postRef.update({
-      totalComment: FieldValue.increment(-1),
-    });
+    await Promise.all(updatePromises);
   });
 
 // update total post when a new post is created
@@ -442,15 +433,44 @@ export const updateTotalPostDeleted = functions.firestore
   });
 
 // delete all comments and votes subcollection when a post is deleted
+export const deleteAllPostSubcollection = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}")
+  .onDelete(async (snapshot, context) => {
+    const { communityID, postID } = context.params;
 
-// export const deletePostSubcollection = functions.firestore
-//   .document("/Community/{communityID}/Post/{postID}")
-//   .onDelete(async (snapshot, context) => {
-//     const deletedValue = snapshot.data();
+    const promises = [];
+    promises.push(deleteCollection(db, `/Community/${communityID}/Post/${postID}/Comment`, BATCH_SIZE));
+    promises.push(deleteCollection(db, `/Community/${communityID}/Post/${postID}/Votes`, BATCH_SIZE));
+    
+    await Promise.all(promises);
+  });
 
-//   })
+// delete all child comment and votes subcollection when a comment is deleted
+export const deleteChildCommentAndVoteSubcollection = functions.firestore
+  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+  .onDelete(async (snapshot, context) => {
+    const { communityID, postID, commentID } = context.params;
 
-//
+    // find all comment which has replyCommentID = deletedCommentID
+    const commentQuery = db
+      .collection("Community")
+      .doc(communityID)
+      .collection("Post")
+      .doc(postID)
+      .collection("Comment")
+      .where("replyCommentID", "==", commentID);
+
+    const commentQuerySnapshot = await commentQuery.get();
+
+    const promises: any[] = [];
+    // delete all child comment and vote subcollection of child comment
+    commentQuerySnapshot.forEach((doc) => {
+      promises.push(doc.ref.delete());
+      promises.push(deleteCollection(db, `/Community/${communityID}/Post/${postID}/Comment/${doc.id}/Votes`, BATCH_SIZE));
+    });
+
+    await Promise.all(promises);
+  });
 
 // add createTime when a new Post is created
 
@@ -578,13 +598,6 @@ export const addUserDefaultDepartment = functions.firestore
       return;
     }
 
-    // const community = {
-    //   communityId: communityQuerySnapshot.docs[0].id,
-    //   name: communityQuerySnapshot.docs[0].data().name,
-    //   department: communityQuerySnapshot.docs[0].data().department,
-    //   description: communityQuerySnapshot.docs[0].data().description,
-    // };
-
     const communityRef = db
       .collection("Community")
       .doc(communityQuerySnapshot.docs[0].id);
@@ -642,6 +655,58 @@ function generateAlphanumericCode(length: number) {
   }
   return result;
 }
+
+// util
+
+async function deleteCollection(db: any, collectionPath: any, batchSize: any) {
+  const collectionRef = db.collection(collectionPath);
+  const query = collectionRef.limit(batchSize);
+
+  return new Promise((resolve, reject) => {
+    deleteQueryBatch(db, query, resolve).catch(reject);
+  });
+}
+
+async function deleteQueryBatch(db: any, query: any, resolve: any) {
+  const snapshot = await query.get();
+
+  const batchSize = snapshot.size;
+  if (batchSize === 0) {
+    // When there are no documents left, we are done
+    resolve();
+    return;
+  }
+
+  // Delete documents in a batch
+  const batch = db.batch();
+  snapshot.docs.forEach((doc: any) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+
+  // Recurse on the next process tick, to avoid
+  // exploding the stack.
+  process.nextTick(() => {
+    deleteQueryBatch(db, query, resolve);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // create new communitymember document
 // export const createCommunityMember = functions.auth
