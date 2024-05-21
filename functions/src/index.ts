@@ -14,6 +14,13 @@ import {
   createNewCommentNotificationFunction,
   createNewPostNotificationFunction,
 } from "./notification";
+import {
+  addTotalNewPostFunction,
+  updateTotalCommentsAndRepliesFunction,
+  updateTotalPostCreatedFunction,
+  updateTotalPostDeletedFunction,
+  updateTotalRepliesWhenCommentDeletedFunction,
+} from "./post-comment/totalCount";
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
@@ -29,129 +36,28 @@ export const createNewPostNotification = functions.firestore
 // add total new post in a community when a new post is created
 export const addTotalNewPost = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
-  .onCreate(async (snapshot, context) => {
-    const communityID = context.params.communityID;
-    const communityRef = db.collection("Community").doc(communityID);
-    await communityRef.get().then(async (doc) => {
-      if (!doc.exists) {
-        console.log("No such document! (Community)");
-      } else {
-        const data = doc.data();
-        if (data) {
-          const members = data.userList;
-          const batch = db.batch();
-          await members.forEach(async (userID: string) => {
-            const newPostQuery = db
-              .collection("NewPost")
-              .where("userID", "==", userID)
-              .where("communityID", "==", communityID)
-              .limit(1);
-            const querySnapshot = await newPostQuery.get();
-            if (querySnapshot.empty) {
-              console.log("No matching documents. (NewPost)");
-              return;
-            }
-
-            const newPostRef = querySnapshot.docs[0].ref;
-
-            batch.set(newPostRef, {
-              totalNewPost: FieldValue.increment(1),
-            });
-          });
-          await batch.commit();
-        } else {
-          console.log("No data in document!");
-        }
-      }
-    });
-  });
+  .onCreate(addTotalNewPostFunction);
 
 // update total replies, comments when a new comment is created
 export const updateTotalCommentsAndReplies = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
-  .onCreate(async (snapshot, context) => {
-    const communityID = context.params.communityID;
-    const postID = context.params.postID;
-    const commentID = snapshot.data().replyCommentID;
-    if (commentID) {
-      const commentRef = db
-        .collection("Community")
-        .doc(communityID)
-        .collection("Post")
-        .doc(postID)
-        .collection("Comment")
-        .doc(commentID);
-
-      await commentRef.update({
-        totalReply: FieldValue.increment(1),
-      });
-    } else {
-      console.log("replyCommentID does not exist");
-    }
-
-    const postRef = db
-      .collection("Community")
-      .doc(communityID)
-      .collection("Post")
-      .doc(postID);
-
-    await postRef.update({
-      totalComment: FieldValue.increment(1),
-    });
-  });
+  .onCreate(updateTotalCommentsAndRepliesFunction);
 
 // update total replies when a comment is deleted
 export const updateTotalRepliesWhenCommentDeleted = functions.firestore
   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
-  .onDelete(async (snapshot, context) => {
-    const { communityID, postID } = context.params;
-    const commentID = snapshot.data().replyCommentID;
-
-    const communityRef = db.collection("Community").doc(communityID);
-    const postRef = communityRef.collection("Post").doc(postID);
-
-    const updatePromises = [];
-
-    if (commentID) {
-      const commentRef = postRef.collection("Comment").doc(commentID);
-      updatePromises.push(
-        commentRef.update({ totalReply: FieldValue.increment(-1) })
-      );
-    } else {
-      console.log("replyCommentID does not exist");
-    }
-
-    updatePromises.push(
-      postRef.update({ totalComment: FieldValue.increment(-1) })
-    );
-
-    await Promise.all(updatePromises);
-  });
+  .onDelete(updateTotalRepliesWhenCommentDeletedFunction);
 
 // update total post when a new post is created
 
 export const updateTotalPostCreated = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
-  .onCreate(async (snapshot, context) => {
-    const communityID = context.params.communityID;
-    const communityRef = db.collection("Community").doc(communityID);
-
-    return await communityRef.update({
-      totalPost: FieldValue.increment(1),
-    });
-  });
+  .onCreate(updateTotalPostCreatedFunction);
 
 // update total post when a post is deleted
 export const updateTotalPostDeleted = functions.firestore
   .document("/Community/{communityID}/Post/{postID}")
-  .onDelete(async (snapshot, context) => {
-    const communityID = context.params.communityID;
-    const communityRef = db.collection("Community").doc(communityID);
-
-    return await communityRef.update({
-      totalPost: FieldValue.increment(-1),
-    });
-  });
+  .onDelete(updateTotalPostDeletedFunction);
 
 // delete all comments and votes subcollection when a post is deleted
 export const deleteAllPostSubcollection = functions.firestore
