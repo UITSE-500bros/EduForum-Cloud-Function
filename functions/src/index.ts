@@ -30,6 +30,14 @@ import {
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
 import { updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
+import { getMemberInfoFunction } from "./community/community-http";
+
+// http function
+
+// get member info of a community
+export const getMemberInfo = functions.https.onCall(getMemberInfoFunction);
+
+// background function
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
