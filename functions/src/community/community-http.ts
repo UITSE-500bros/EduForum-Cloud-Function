@@ -84,7 +84,7 @@ export const getMemberInfoFunction = async (data: any, context: any) => {
 export const createCommunityFunction = async (data: any, context: any) => {
   const { error } = createCommunityDTO.validate(data);
   if (error) {
-    throw new Error(`Invalid data: ${error.details[0].message}`);
+    return { error: error.message };
   }
 
   const {
