@@ -88,6 +88,7 @@ export const createCommunityFunction = async (data: any, context: any) => {
   }
 
   const {
+    communityID,
     name,
     department,
     description,
@@ -125,6 +126,6 @@ export const createCommunityFunction = async (data: any, context: any) => {
     }
   }
 
-  const communityRef = await db.collection("Community").add(communityData);
-  return { communityID: communityRef.id, ...communityData };
+  await db.collection("Community").doc(communityID).set(communityData);
+  return { communityData };
 };
