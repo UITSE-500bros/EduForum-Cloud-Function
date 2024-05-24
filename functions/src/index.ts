@@ -26,16 +26,17 @@ import {
   addSampleCategoryFunction,
   addUserDefaultDepartmentFunction,
   createSubscriptionSubcollectionFunction,
-  generateCommunityCodeFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
 import { updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
-import { getMemberInfoFunction } from "./community/community-http";
+import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
 
 // http function
 
 // get member info of a community
 export const getMemberInfo = functions.https.onCall(getMemberInfoFunction);
+// create new community
+export const createCommunity = functions.https.onCall(createCommunityFunction);
 
 // background function
 
@@ -121,9 +122,9 @@ export const createSubscriptionSubcollection = functions.firestore
   .onCreate(createSubscriptionSubcollectionFunction);
 
 // generate invite code for communities
-export const generateCommunityCode = functions.firestore
-  .document("Community/{communityID}")
-  .onCreate(generateCommunityCodeFunction);
+// export const generateCommunityCode = functions.firestore
+//   .document("Community/{communityID}")
+//   .onCreate(generateCommunityCodeFunction);
 
 // update post and comment when creator update their profile picture, name, department
 export const updatePostAndCommentWhenCreatorUpdateProfile = functions.firestore
