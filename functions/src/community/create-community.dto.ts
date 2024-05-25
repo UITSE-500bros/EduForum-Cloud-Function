@@ -6,7 +6,7 @@ export const createCommunityDTO = Joi.object({
   department: Joi.string().required(),
   description: Joi.string().required(),
   adminList: Joi.array().items(Joi.string()).required(),
-  profilePicture: Joi.string().required(),
+  profilePicture: Joi.string(),
   visibility: Joi.string(),
   waitForApproval: Joi.boolean(),
 });

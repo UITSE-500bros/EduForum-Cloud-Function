@@ -30,6 +30,7 @@ import {
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
 import { updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
 import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
+import { createCommentFunction, createPostFunction } from "./post-comment/post-comment-http";
 
 // http function
 
@@ -37,7 +38,10 @@ import { createCommunityFunction, getMemberInfoFunction } from "./community/comm
 export const getMemberInfo = functions.https.onCall(getMemberInfoFunction);
 // create new community
 export const createCommunity = functions.https.onCall(createCommunityFunction);
-
+// create new post
+export const createPost = functions.https.onCall(createPostFunction);
+// create new comment
+export const createComment = functions.https.onCall(createCommentFunction);
 // background function
 
 // create Notification for new comment
