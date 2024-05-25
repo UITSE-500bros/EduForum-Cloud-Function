@@ -2,6 +2,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../db";
 import { createPostDTO } from "./dto/create-post.dto";
 import { createCommentDTO } from "./dto/create-comment.dto";
+import { updatePostDTO } from "./dto/update-post.dto";
+import { updateCommentDTO } from "./dto/update-comment.dto";
 
 export const createPostFunction = async (data: any, context: any) => {
   const { error } = createPostDTO.validate(data);
@@ -28,7 +30,7 @@ export const createPostFunction = async (data: any, context: any) => {
     creator,
     title,
     content,
-    downloadImage,
+    downloadImage: downloadImage || [],
     isAnonymous,
     category,
     timeCreated: FieldValue.serverTimestamp(),
@@ -66,10 +68,10 @@ export const createCommentFunction = async (data: any, context: any) => {
   const commentData = {
     postID,
     communityID,
-    replyCommentID,
+    replyCommentID: replyCommentID || null,
     creator,
     content,
-    downloadImage,
+    downloadImage: downloadImage || [],
     totalReply: 0,
     timeCreated: FieldValue.serverTimestamp(),
     lastModified: FieldValue.serverTimestamp(),
@@ -80,5 +82,36 @@ export const createCommentFunction = async (data: any, context: any) => {
 
   await commentRef.set(commentData);
 
+  return { commentData };
+};
+
+export const updatePostFunction = async (data: any, context: any) => {
+  const { error } = updatePostDTO.validate(data);
+  if (error) {
+    return { error: error.message };
+  }
+  const { communityID, postID, title, content } = data;
+  const postRef = db.collection("Community").doc(communityID).collection("Post").doc(postID);
+  const postData = {
+    title,
+    content,
+    lastModified: FieldValue.serverTimestamp(),
+  }
+  await postRef.update(postData);
+  return { postData };
+};
+
+export const updateCommentFunction = async (data: any, context: any) => {
+  const { error } = updateCommentDTO.validate(data);
+  if (error) {
+    return { error: error.message };
+  }
+  const { communityID, postID, commentID, content } = data;
+  const commentRef = db.collection("Community").doc(communityID).collection("Post").doc(postID).collection("Comment").doc(commentID);
+  const commentData = {
+    content,
+    lastModified: FieldValue.serverTimestamp(),
+  }
+  await commentRef.update(commentData);
   return { commentData };
 };

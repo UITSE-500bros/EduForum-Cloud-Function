@@ -9,5 +9,5 @@ export const createPostDTO = Joi.object({
   content: Joi.string().required(),
   downloadImage: Joi.array().items(Joi.string()),
   isAnonymous: Joi.boolean(),
-  category: Joi.array().items(categoryDTO).required(),
+  category: Joi.array().items(categoryDTO),
 });
