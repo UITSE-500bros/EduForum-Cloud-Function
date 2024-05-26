@@ -29,7 +29,7 @@ export const addTotalNewPostFunction = async (snapshot: any, context: any) => {
 
           batch.set(newPostRef, {
             totalNewPost: FieldValue.increment(1),
-          });
+          }, { merge: true });
         });
         await batch.commit();
       } else {
