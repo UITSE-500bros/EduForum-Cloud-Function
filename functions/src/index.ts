@@ -28,7 +28,7 @@ import {
   createSubscriptionSubcollectionFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
-import { updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
+import { createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
 import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
 import { createCommentFunction, createPostFunction, updateCommentFunction, updatePostFunction } from "./post-comment/post-comment-http";
 
@@ -48,7 +48,10 @@ export const updatePost = functions.https.onCall(updatePostFunction);
 export const updateComment = functions.https.onCall(updateCommentFunction);
 // background function
 
-
+// create new post when user request to join community
+export const createNewPostWhenUserRequestToJoinCommunity = functions.firestore
+  .document("/Community/{communityID}/MemberApproval/{documentId}")
+  .onCreate(createNewPostWhenUserRequestToJoinCommunityFunction);
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore

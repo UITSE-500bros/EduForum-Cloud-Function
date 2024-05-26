@@ -35,3 +35,14 @@ export const updateMemberApprovalWhenUserUpdateProfileFunction = async (change: 
 
   await batch.commit();
 }
+
+export const createNewPostWhenUserRequestToJoinCommunityFunction = async (data: any, context: any) => {
+  const { userID } = data;
+  const { communityID } = context.params;
+
+  await db.collection("NewPost").add({
+    userID,
+    communityID,
+    totalNewPost: 0,
+  });
+}

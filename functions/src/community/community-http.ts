@@ -128,6 +128,18 @@ export const createCommunityFunction = async (data: any, context: any) => {
     }
   }
 
-  await db.collection("Community").doc(communityID).set(communityData);
+  // create NewPost document
+  // create new batch
+  const batch = db.batch();
+  const newPostRef = db.collection("NewPost").doc();
+  batch.set(newPostRef, {
+    communityID,
+    userID: adminList[0],
+    totalNewPost: 0,
+  });
+
+  const communityRef = db.collection("Community").doc(communityID);
+  batch.set(communityRef, communityData);
+  await batch.commit();
   return { communityData };
 };
