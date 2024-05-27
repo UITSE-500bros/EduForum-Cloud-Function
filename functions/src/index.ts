@@ -19,8 +19,7 @@ import {
 import {
   addLastModifiedToEditedCommentFunction,
   addLastModifiedToEditedPostFunction,
-  addTimeCreatedToCommentFunction,
-  addTimeCreatedToPostFunction,
+  addTimeCreatedToCommentFunction, 
 } from "./post-comment/timestamp";
 import {
   addSampleCategoryFunction,
@@ -100,9 +99,9 @@ export const deleteChildCommentAndVoteSubcollection = functions.firestore
   .onDelete(deleteChildCommentAndVoteSubcollectionFunction);
 
 // add createTime when a new Post is created
-export const addTimeCreatedToPost = functions.firestore
-  .document("/Community/{communityID}/Post/{postID}")
-  .onCreate(addTimeCreatedToPostFunction);
+// export const addTimeCreatedToPost = functions.firestore
+//   .document("/Community/{communityID}/Post/{postID}")
+//   .onCreate(addTimeCreatedToPostFunction);
 
 // add createTime when a new Comment is created
 export const addTimeCreatedToComment = functions.firestore

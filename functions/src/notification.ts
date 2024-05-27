@@ -146,7 +146,7 @@ export const createNewPostNotificationFunction = async (
       .collection("Community")
       .doc(communityID)
       .collection("Category")
-      .doc(category.id);
+      .doc(category.categoryID);
     const categoryDoc = await categoryRef.get();
     if (categoryDoc.data()?.isAnnouncement) {
       await createNewAnnouncementNotification(community, post);
