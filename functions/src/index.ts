@@ -24,6 +24,7 @@ import {
 import {
   addSampleCategoryFunction,
   addUserDefaultDepartmentFunction,
+  createNewPostForUITCommunityFunction,
   createSubscriptionSubcollectionFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
@@ -51,6 +52,11 @@ export const updateComment = functions.https.onCall(updateCommentFunction);
 export const createNewPostWhenUserRequestToJoinCommunity = functions.firestore
   .document("/Community/{communityID}/MemberApproval/{documentId}")
   .onCreate(createNewPostWhenUserRequestToJoinCommunityFunction);
+
+// create new post for UIT community
+export const createNewPostForUITCommunity = functions.firestore
+  .document("/User/{userID}")
+  .onCreate(createNewPostForUITCommunityFunction);
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore

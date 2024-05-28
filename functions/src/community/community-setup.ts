@@ -29,6 +29,31 @@ export const addUserDefaultDepartmentFunction = async (
   });
 };
 
+// create new post for UIT community
+export const createNewPostForUITCommunityFunction = async (snapshot: any, context: any) => {
+  const { userID } = context.params;
+  // get SE-UIT total post
+  const communityRef = db.collection("Community").doc("SE-UIT");
+  const communitySnapshot = await communityRef.get();
+  if (!communitySnapshot.exists) {
+    console.log("SE-UIT does not exist");
+    return;
+  }
+  const communityData = communitySnapshot.data();
+  if (!communityData) {
+    console.log("SE-UIT data does not exist");
+    return;
+  }
+  const totalPost = communityData.totalPost;
+  const data = {
+    communityID: "SE-UIT",
+    userID,
+    totalNewPost: totalPost,
+  }
+
+  return db.collection("NewPost").add(data);
+}
+
 // create empty subscription subcollection when new community is created
 export const createSubscriptionSubcollectionFunction = async (
   snapshot: any,

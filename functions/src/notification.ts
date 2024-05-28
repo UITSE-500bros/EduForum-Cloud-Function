@@ -37,55 +37,57 @@ export const createNewCommentNotificationFunction = async (
     return;
   }
   const creator = post.creator;
-
-  // check if the comment is created by the post creator, if it is, do not notify
-  if (comment.creator.creatorID === creator.creatorID) {
-    return;
-  }
-  // notify the post creator
-  const notificationCreatorRef = db
-    .collection("User")
-    .doc(creator.creatorID)
-    .collection("Notification")
-    .doc();
-  const notificationCreatorData = {
-    type: 1, // 1: new comment of my post
-    community: {
-      communityID,
-      name: post.community.name,
-    },
-    triggeredBy: {
-      userID: comment.creator.creatorID,
-      name: comment.creator.name,
-      profilePicture: comment.creator.profilePicture,
-    },
-    post: {
-      postID,
-    },
-    comment: {
-      commentID,
-      content: comment.content,
-    },
-    timestamp: FieldValue.serverTimestamp(),
-    isRead: false,
-  };
-
   const batch = db.batch();
-  batch.set(notificationCreatorRef, notificationCreatorData);
+  // check if the comment is created by the post creator, if it is, do not notify
+  if (creator && comment.creator.creatorID !== creator.creatorID) {
+    // notify the post creator
+    const notificationCreatorRef = db
+      .collection("User")
+      .doc(creator.creatorID)
+      .collection("Notification")
+      .doc();
+    const notificationCreatorData = {
+      type: 1, // 1: new comment of my post
+      community: {
+        communityID,
+        name: post.community.name,
+      },
+      triggeredBy: {
+        userID: comment.creator.creatorID,
+        name: comment.creator.name,
+        profilePicture: comment.creator.profilePicture,
+      },
+      post: {
+        postID,
+      },
+      comment: {
+        commentID,
+        content: comment.content,
+      },
+      timestamp: FieldValue.serverTimestamp(),
+      isRead: false,
+    };
+    batch.set(notificationCreatorRef, notificationCreatorData);
+  }
 
   // notify the subscribers - exclude the post creator
 
   // get the post subscribers
-  const postSubcribersQuery = await db
+
+  let postSubcribersQuery = db
     .collection("PostSubscription")
     .where("postID", "==", postID)
-    .where("userID", "!=", creator.creatorID)
-    .where("communityID", "==", communityID)
-    .get();
+    .where("communityID", "==", communityID);
+  
+  if (creator) {
+    postSubcribersQuery = postSubcribersQuery.where("userID", "!=", creator.creatorID);
+  }
 
-  if (!postSubcribersQuery.empty) {
+  const postSubcribersQueryResult = await postSubcribersQuery.get();
+
+  if (!postSubcribersQueryResult.empty) {
     // send notification to the subscribers
-    postSubcribersQuery.forEach((doc) => {
+    postSubcribersQueryResult.forEach((doc) => {
       const notificationSubscriberRef = db
         .collection("User")
         .doc(doc.data().userID)
