@@ -36,8 +36,10 @@ export const updateMemberApprovalWhenUserUpdateProfileFunction = async (change: 
   await batch.commit();
 }
 
-export const createNewPostWhenUserRequestToJoinCommunityFunction = async (data: any, context: any) => {
-  const { userID } = data;
+export const createNewPostWhenUserRequestToJoinCommunityFunction = async (snapshot: any, context: any) => {
+  
+  const { userID } = snapshot.data();
+
   const { communityID } = context.params;
 
   await db.collection("NewPost").add({
