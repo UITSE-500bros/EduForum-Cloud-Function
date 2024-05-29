@@ -29,7 +29,7 @@ import {
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
 import { approveAllUserRequestToJoinCommunityFunction, createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
-import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
+import { createCommunityFunction, getMemberInfoFunction, updateCommunityFunction } from "./community/community-http";
 import { createCommentFunction, createPostFunction, updateCommentFunction, updatePostFunction } from "./post-comment/post-comment-http";
 import { markAllNotificationAsReadFunction } from "./notification/notification-http";
 
@@ -39,6 +39,8 @@ import { markAllNotificationAsReadFunction } from "./notification/notification-h
 export const getMemberInfo = functions.https.onCall(getMemberInfoFunction);
 // create new community
 export const createCommunity = functions.https.onCall(createCommunityFunction);
+// update community
+export const updateCommunity = functions.https.onCall(updateCommunityFunction);
 // create new post
 export const createPost = functions.https.onCall(createPostFunction);
 // create new comment

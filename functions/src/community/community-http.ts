@@ -1,7 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../db";
-import { createCommunityDTO } from "./create-community.dto";
+import { createCommunityDTO } from "./dto/create-community.dto";
 import { generateAlphanumericCode, NUMBER_OF_DIGIT } from "../util";
+import { storage } from "firebase-admin";
 
 export const getMemberInfoFunction = async (data: any, context: any) => {
   const { communityID } = data;
@@ -142,4 +143,61 @@ export const createCommunityFunction = async (data: any, context: any) => {
   batch.set(communityRef, communityData);
   await batch.commit();
   return { communityData };
+};
+
+export const updateCommunityFunction = async (data: any, context: any) => {
+  const { error } = createCommunityDTO.validate(data);
+  console.log("Input data for updating community", data);
+  if (error) {
+    console.log("Error", error.message);
+    return { error: "Invalid type" };
+  }
+
+  const { communityID, name, department, description, visibility, profilePicture, oldProfilePicture } = data;
+
+  
+  // delete the old image from storage if profilePicture is updated
+  let updateData = {};
+  if (profilePicture) {
+    const bucket = storage().bucket();
+    const file = bucket.file(oldProfilePicture);
+    await file.delete();
+    updateData = {
+      profilePicture,
+      ...updateData,
+    };
+  }
+
+  if (name) {
+    updateData = {
+      name,
+      ...updateData,
+    };
+  }
+  if (department) {
+    updateData = {
+      department,
+      ...updateData,
+    };
+  }
+  if (description) {
+    updateData = {
+      description,
+      ...updateData,
+    };
+  }
+  if (visibility) {
+    updateData = {
+      visibility,
+      ...updateData,
+    };
+  }
+
+  const communityRef = db.collection("Community").doc(communityID);
+  const res = await communityRef.update(updateData);
+  if (res) {
+    return { success: true };
+  } else {
+    return { error: "Update failed" };
+  }
 };
