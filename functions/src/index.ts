@@ -28,7 +28,7 @@ import {
   createSubscriptionSubcollectionFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
-import { createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
+import { approveAllUserRequestToJoinCommunityFunction, createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
 import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
 import { createCommentFunction, createPostFunction, updateCommentFunction, updatePostFunction } from "./post-comment/post-comment-http";
 
@@ -46,6 +46,9 @@ export const createComment = functions.https.onCall(createCommentFunction);
 export const updatePost = functions.https.onCall(updatePostFunction);
 // update comment
 export const updateComment = functions.https.onCall(updateCommentFunction);
+// approve/reject all user requested to join community
+export const approveAllUserRequestToJoinCommunity = functions.https.onCall(approveAllUserRequestToJoinCommunityFunction);
+
 // background function
 
 // create new post when user request to join community

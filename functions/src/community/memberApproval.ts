@@ -1,8 +1,12 @@
-import { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { FieldValue, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { Change } from "firebase-functions/v1";
 import { db } from "../db";
+import { approveAllUserDTO } from "./dto/approve-all-user.dto";
 
-export const updateMemberApprovalWhenUserUpdateProfileFunction = async (change: Change<QueryDocumentSnapshot>, context: any) => {
+export const updateMemberApprovalWhenUserUpdateProfileFunction = async (
+  change: Change<QueryDocumentSnapshot>,
+  context: any
+) => {
   const data = change.after.data();
   const previousData = change.before.data();
 
@@ -34,10 +38,12 @@ export const updateMemberApprovalWhenUserUpdateProfileFunction = async (change: 
   });
 
   await batch.commit();
-}
+};
 
-export const createNewPostWhenUserRequestToJoinCommunityFunction = async (snapshot: any, context: any) => {
-  
+export const createNewPostWhenUserRequestToJoinCommunityFunction = async (
+  snapshot: any,
+  context: any
+) => {
   const { userID } = snapshot.data();
 
   const { communityID } = context.params;
@@ -47,4 +53,47 @@ export const createNewPostWhenUserRequestToJoinCommunityFunction = async (snapsh
     communityID,
     totalNewPost: 0,
   });
-}
+};
+
+export const approveAllUserRequestToJoinCommunityFunction = async (
+  data: any,
+  context: any
+) => {
+  const { error } = approveAllUserDTO.validate(data);
+  if (error) {
+    return { error: error.message };
+  }
+  const { communityID, isApprove } = data;
+
+  try {
+    const res = await db.runTransaction(async (transaction) => {
+      const memberApprovalQuerySnapshot = await db
+        .collection("Community")
+        .doc(communityID)
+        .collection("MemberApproval")
+        .get();
+
+      const userIds: string[] = [];
+      memberApprovalQuerySnapshot.forEach((doc) => {
+        const memberApprovalData = doc.data();
+        if (isApprove) {
+          userIds.push(memberApprovalData.userID);
+        }
+        transaction.delete(doc.ref);
+      });
+
+      if (isApprove) {
+        const communityRef = db.collection("Community").doc(communityID);
+        transaction.update(communityRef, {
+          userList: FieldValue.arrayUnion(...userIds),
+        });
+      }
+      return true;
+    });
+    if (res) return { success: true };
+    else return { error: true };
+  } catch (error) {
+    console.log("Transaction failure:", error);
+    return { error: true };
+  }
+};
