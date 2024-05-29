@@ -129,7 +129,15 @@ export const createNewPostNotificationFunction = async (
 ) => {
   const communityID = context.params.communityID;
   const postID = context.params.postID;
-  const post = snapshot.data();
+  let post = snapshot.data();
+  if (!post) {
+    console.log("No data in document! (Post)");
+    return;
+  }
+  post = {
+    id: postID,
+    ...post,
+  }
 
   // get community name
   const communityRef = db.collection("Community").doc(communityID);
@@ -138,8 +146,13 @@ export const createNewPostNotificationFunction = async (
     console.log("No such document! (Community)");
     return;
   }
-  const community = communityDoc.data();
+  let community = communityDoc.data();
+  community = {
+    id: communityDoc.id,
+    ...community,
+  }
   const communityName = community?.name;
+  
 
   const postCategory = post.category;
   for (const category of postCategory) {
@@ -268,9 +281,43 @@ async function createNewAnnouncementNotification(community: any, post: any) {
   const communityName = community.name;
 
   const members = community.userList;
+  const admins = community.adminList;
 
   const batch = db.batch();
   await members.forEach(async (userID: string) => {
+    if (userID === post.creator.creatorID) {
+      return;
+    }
+    const notificationRef = db
+      .collection("User")
+      .doc(userID)
+      .collection("Notification")
+      .doc();
+    const notificationData = {
+      type: 4, // 4: announcement
+      community: {
+        communityID,
+        name: communityName,
+      },
+      triggeredBy: {
+        userID: post.creator.creatorID,
+        name: post.creator.name,
+        profilePicture: post.creator.profilePicture,
+      },
+      post: {
+        postID: post.id,
+        title: post.title,
+      },
+      timestamp: FieldValue.serverTimestamp(),
+      isRead: false,
+    };
+    batch.set(notificationRef, notificationData);
+  });
+
+  await admins.forEach(async (userID: string) => {
+    if (userID === post.creator.creatorID) {
+      return;
+    }
     const notificationRef = db
       .collection("User")
       .doc(userID)

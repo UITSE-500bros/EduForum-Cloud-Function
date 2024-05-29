@@ -13,24 +13,25 @@ export const addTotalNewPostFunction = async (snapshot: any, context: any) => {
       if (data) {
         const members = data.userList;
         const batch = db.batch();
-        await members.forEach(async (userID: string) => {
+        for (const userID of members) {
           const newPostQuery = db
             .collection("NewPost")
             .where("userID", "==", userID)
             .where("communityID", "==", communityID)
             .limit(1);
+      
           const querySnapshot = await newPostQuery.get();
+      
           if (querySnapshot.empty) {
             console.log("No matching documents. (NewPost)");
-            return;
+            continue;
           }
-
+      
           const newPostRef = querySnapshot.docs[0].ref;
-
           batch.set(newPostRef, {
             totalNewPost: FieldValue.increment(1),
           }, { merge: true });
-        });
+        }
         await batch.commit();
       } else {
         console.log("No data in document!");
