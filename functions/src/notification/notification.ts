@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../db";
 import { FieldValue } from "firebase-admin/firestore";
 
 // create Notification for new comment

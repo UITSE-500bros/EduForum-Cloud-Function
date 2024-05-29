@@ -4,7 +4,7 @@ import * as functions from "firebase-functions";
 import {
   createNewCommentNotificationFunction,
   createNewPostNotificationFunction,
-} from "./notification";
+} from "./notification/notification";
 import {
   addTotalNewPostFunction,
   updateTotalCommentsAndRepliesFunction,
@@ -31,6 +31,7 @@ import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-com
 import { approveAllUserRequestToJoinCommunityFunction, createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
 import { createCommunityFunction, getMemberInfoFunction } from "./community/community-http";
 import { createCommentFunction, createPostFunction, updateCommentFunction, updatePostFunction } from "./post-comment/post-comment-http";
+import { markAllNotificationAsReadFunction } from "./notification/notification-http";
 
 // http function
 
@@ -48,6 +49,8 @@ export const updatePost = functions.https.onCall(updatePostFunction);
 export const updateComment = functions.https.onCall(updateCommentFunction);
 // approve/reject all user requested to join community
 export const approveAllUserRequestToJoinCommunity = functions.https.onCall(approveAllUserRequestToJoinCommunityFunction);
+// mark all notification as read
+export const markAllNotificationAsRead = functions.https.onCall(markAllNotificationAsReadFunction);
 
 // background function
 
