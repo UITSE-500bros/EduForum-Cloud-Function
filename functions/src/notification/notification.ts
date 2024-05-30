@@ -15,9 +15,24 @@ export const createNewCommentNotificationFunction = async (
     return;
   }
 
+  // get the community Name
+  const communityRef = db.collection("Community").doc(communityID);
+  const communityDoc = await communityRef.get();
+  if (!communityDoc.exists) {
+    console.log("No such document! (Community)");
+    return;
+  }
+  const community = communityDoc.data();
+  if (!community) {
+    console.log("No data in document! (Community)");
+    return;
+  }
+  const communityName = community.name;
+
+
   // check if the comment is a reply, if it is, do not notify
   if (comment.replyCommentID) {
-    await createNotificationForReply(comment);
+    await createNotificationForReply(comment, communityName);
     return;
   }
 
@@ -50,7 +65,7 @@ export const createNewCommentNotificationFunction = async (
       type: 1, // 1: new comment of my post
       community: {
         communityID,
-        name: post.community.name,
+        name: communityName,
       },
       triggeredBy: {
         userID: comment.creator.creatorID,
@@ -97,7 +112,7 @@ export const createNewCommentNotificationFunction = async (
         type: 5, // 5: new comment of post I subscribed
         community: {
           communityID,
-          name: post.community.name,
+          name: communityName,
         },
         triggeredBy: {
           userID: comment.creator.creatorID,
@@ -222,7 +237,7 @@ export const createNewPostNotificationFunction = async (
 // util functions
 
 // create Notification for new reply
-async function createNotificationForReply(reply: any) {
+async function createNotificationForReply(reply: any, communityName: string) {
   // get the parent comment
   const parentCommentRef = db
     .collection("Community")
@@ -254,7 +269,7 @@ async function createNotificationForReply(reply: any) {
     type: 3, // 3: new reply of my comment
     community: {
       communityID: reply.communityID,
-      name: reply.communityName,
+      name: communityName,
     },
     triggeredBy: {
       userID: reply.creator.creatorID,

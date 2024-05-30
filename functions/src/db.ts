@@ -3,7 +3,8 @@ import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 
 // App init
-admin.initializeApp();
-
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+});
 // Initialize Firestore
 export const db = getFirestore();

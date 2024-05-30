@@ -1,5 +1,7 @@
 // The Cloud Functions for Firebase SDK to create Cloud Functions and triggers.
 import * as functions from "firebase-functions";
+// import * as admin from "firebase-admin";
+import { getMessaging } from "firebase-admin/messaging";
 
 import {
   createNewCommentNotificationFunction,
@@ -19,7 +21,6 @@ import {
 import {
   addLastModifiedToEditedCommentFunction,
   addLastModifiedToEditedPostFunction,
-  addTimeCreatedToCommentFunction, 
 } from "./post-comment/timestamp";
 import {
   addSampleCategoryFunction,
@@ -28,9 +29,22 @@ import {
   createSubscriptionSubcollectionFunction,
 } from "./community/community-setup";
 import { updatePostAndCommentWhenCreatorUpdateProfileFunction } from "./post-comment/update";
-import { approveAllUserRequestToJoinCommunityFunction, createNewPostWhenUserRequestToJoinCommunityFunction, updateMemberApprovalWhenUserUpdateProfileFunction } from "./community/memberApproval";
-import { createCommunityFunction, getMemberInfoFunction, updateCommunityFunction } from "./community/community-http";
-import { createCommentFunction, createPostFunction, updateCommentFunction, updatePostFunction } from "./post-comment/post-comment-http";
+import {
+  approveAllUserRequestToJoinCommunityFunction,
+  createNewPostWhenUserRequestToJoinCommunityFunction,
+  updateMemberApprovalWhenUserUpdateProfileFunction,
+} from "./community/memberApproval";
+import {
+  createCommunityFunction,
+  getMemberInfoFunction,
+  updateCommunityFunction,
+} from "./community/community-http";
+import {
+  createCommentFunction,
+  createPostFunction,
+  updateCommentFunction,
+  updatePostFunction,
+} from "./post-comment/post-comment-http";
 import { markAllNotificationAsReadFunction } from "./notification/notification-http";
 
 // http function
@@ -50,9 +64,13 @@ export const updatePost = functions.https.onCall(updatePostFunction);
 // update comment
 export const updateComment = functions.https.onCall(updateCommentFunction);
 // approve/reject all user requested to join community
-export const approveAllUserRequestToJoinCommunity = functions.https.onCall(approveAllUserRequestToJoinCommunityFunction);
+export const approveAllUserRequestToJoinCommunity = functions.https.onCall(
+  approveAllUserRequestToJoinCommunityFunction
+);
 // mark all notification as read
-export const markAllNotificationAsRead = functions.https.onCall(markAllNotificationAsReadFunction);
+export const markAllNotificationAsRead = functions.https.onCall(
+  markAllNotificationAsReadFunction
+);
 
 // background function
 
@@ -65,6 +83,56 @@ export const createNewPostWhenUserRequestToJoinCommunity = functions.firestore
 export const createNewPostForUITCommunity = functions.firestore
   .document("/User/{userID}")
   .onCreate(createNewPostForUITCommunityFunction);
+
+// send push notification
+export const sendPushNotification = functions.firestore
+  .document("/User/{userID}/Notification/{notificationID}")
+  .onCreate(async (snapshot, context) => {
+    const nofiticationData = snapshot.data();
+    if (!nofiticationData) {
+      console.log("No data in document! (Notification)");
+      return;
+    }
+    const userID = context.params.userID;
+    const topic = `user_${userID}`;
+
+    let title = "Thông báo mới";
+    let body = "Hãy kiểm tra thông báo mới của bạn.";
+    if (nofiticationData.type === 1) {
+      title = `Bình luận mới - ${nofiticationData.community.name}`;
+      body = `${nofiticationData.triggeredBy.name} đã bình luận vào bài viết của bạn.`;
+    } else if (nofiticationData.type === 2) {
+      title = `Bài viết mới - ${nofiticationData.community.name}`;
+      body = `${nofiticationData.triggeredBy.name} đã tạo bài viết mới trong cộng đồng bạn quan tâm.`;
+    } else if (nofiticationData.type === 3) {
+      title = `Bình luận mới - ${nofiticationData.community.name}`;
+      body = `${nofiticationData.triggeredBy.name} đã trả lời bình luận của bạn.`;
+    } else if (nofiticationData.type === 4) {
+      title = `Thông báo mới - ${nofiticationData.community.name}`;
+      body = `${nofiticationData.triggeredBy.name} đã tạo một thông báo mới.`;
+    } else if (nofiticationData.type === 5) {
+      title = `Bình luận mới - ${nofiticationData.community.name}`;
+      body = `${nofiticationData.triggeredBy.name} đã bình luận vào bài viết bạn theo dõi.`;
+    }
+
+    const payload = {
+      notification: { title, body },
+      topic: topic,
+      data: {
+        communityID: nofiticationData.community.communityID,
+        postID: nofiticationData.post.postID,
+      }
+    };
+    return getMessaging()
+      .send(payload)
+      .then((response) => {
+        // Response is a message ID string.
+        console.log("Successfully sent message:", response);
+      })
+      .catch((error) => {
+        console.log("Error sending message:", error);
+      });
+  });
 
 // create Notification for new comment
 export const createNewCommentNotification = functions.firestore
@@ -118,9 +186,9 @@ export const deleteChildCommentAndVoteSubcollection = functions.firestore
 //   .onCreate(addTimeCreatedToPostFunction);
 
 // add createTime when a new Comment is created
-export const addTimeCreatedToComment = functions.firestore
-  .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
-  .onCreate(addTimeCreatedToCommentFunction);
+// export const addTimeCreatedToComment = functions.firestore
+//   .document("/Community/{communityID}/Post/{postID}/Comment/{commentID}")
+//   .onCreate(addTimeCreatedToCommentFunction);
 
 // add lastModified when a post is edited
 export const addLastModifiedToEditedPost = functions.firestore

@@ -43,7 +43,14 @@ export const createPostFunction = async (data: any, context: any) => {
 
   await postRef.set(postData);
 
-  return { postData };
+  const savedPost = await postRef.get();
+  if (!savedPost.exists) {
+    console.log("Failed to fetch the post after saving.");
+    return { error: "Failed to fetch the post after saving." };
+  }
+  const savePostData = savedPost.data();
+
+  return savePostData;
 };
 
 export const createCommentFunction = async (data: any, context: any) => {
@@ -81,8 +88,15 @@ export const createCommentFunction = async (data: any, context: any) => {
   }
 
   await commentRef.set(commentData);
+  // Retrieve the document to get the server-resolved timestamp
+  const savedComment = await commentRef.get();
+  if (!savedComment.exists) {
+    console.log("Failed to fetch the comment after saving.");
+    return { error: "Failed to fetch the comment after saving." };
+  }
+  const savedCommentData = savedComment.data();
 
-  return { commentData };
+  return savedCommentData;
 };
 
 export const updatePostFunction = async (data: any, context: any) => {
