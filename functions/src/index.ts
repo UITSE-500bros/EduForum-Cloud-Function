@@ -88,8 +88,8 @@ export const createNewPostForUITCommunity = functions.firestore
 export const sendPushNotification = functions.firestore
   .document("/User/{userID}/Notification/{notificationID}")
   .onCreate(async (snapshot, context) => {
-    const nofiticationData = snapshot.data();
-    if (!nofiticationData) {
+    const notificationData = snapshot.data();
+    if (!notificationData) {
       console.log("No data in document! (Notification)");
       return;
     }
@@ -98,30 +98,39 @@ export const sendPushNotification = functions.firestore
 
     let title = "Thông báo mới";
     let body = "Hãy kiểm tra thông báo mới của bạn.";
-    if (nofiticationData.type === 1) {
-      title = `Bình luận mới - ${nofiticationData.community.name}`;
-      body = `${nofiticationData.triggeredBy.name} đã bình luận vào bài viết của bạn.`;
-    } else if (nofiticationData.type === 2) {
-      title = `Bài viết mới - ${nofiticationData.community.name}`;
-      body = `${nofiticationData.triggeredBy.name} đã tạo bài viết mới trong cộng đồng bạn quan tâm.`;
-    } else if (nofiticationData.type === 3) {
-      title = `Bình luận mới - ${nofiticationData.community.name}`;
-      body = `${nofiticationData.triggeredBy.name} đã trả lời bình luận của bạn.`;
-    } else if (nofiticationData.type === 4) {
-      title = `Thông báo mới - ${nofiticationData.community.name}`;
-      body = `${nofiticationData.triggeredBy.name} đã tạo một thông báo mới.`;
-    } else if (nofiticationData.type === 5) {
-      title = `Bình luận mới - ${nofiticationData.community.name}`;
-      body = `${nofiticationData.triggeredBy.name} đã bình luận vào bài viết bạn theo dõi.`;
+    if (notificationData.type === 1) {
+      title = `Bình luận mới - ${notificationData.community.name}`;
+      body = `${notificationData.triggeredBy.name} đã bình luận vào bài viết của bạn.`;
+    } else if (notificationData.type === 2) {
+      title = `Bài viết mới - ${notificationData.community.name}`;
+      body = `${notificationData.triggeredBy.name} đã tạo bài viết mới trong cộng đồng bạn quan tâm.`;
+    } else if (notificationData.type === 3) {
+      title = `Bình luận mới - ${notificationData.community.name}`;
+      body = `${notificationData.triggeredBy.name} đã trả lời bình luận của bạn.`;
+    } else if (notificationData.type === 4) {
+      title = `Thông báo mới - ${notificationData.community.name}`;
+      body = `${notificationData.triggeredBy.name} đã tạo một thông báo mới.`;
+    } else if (notificationData.type === 5) {
+      title = `Bình luận mới - ${notificationData.community.name}`;
+      body = `${notificationData.triggeredBy.name} đã bình luận vào bài viết bạn theo dõi.`;
     }
 
+    // const payload = {
+    //   notification: { title, body },
+    //   topic: topic,
+    //   data: {
+    //     communityID: nofiticationData.community.communityID,
+    //     postID: nofiticationData.post.postID,
+    //   }
+    // };
     const payload = {
-      notification: { title, body },
-      topic: topic,
       data: {
-        communityID: nofiticationData.community.communityID,
-        postID: nofiticationData.post.postID,
-      }
+        title: title,
+        body: body,
+        communityID: notificationData.community.communityID,
+        postID: notificationData.post.postID,
+      },
+      topic: topic
     };
     return getMessaging()
       .send(payload)

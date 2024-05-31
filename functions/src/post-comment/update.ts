@@ -15,6 +15,7 @@ export const updatePostAndCommentWhenCreatorUpdateProfileFunction = async (
     return;
 
   const newCreator = {
+    creatorID: context.params.userID,
     name: data.name,
     profilePicture: data.profilePicture,
     department: data.department,
@@ -26,6 +27,12 @@ export const updatePostAndCommentWhenCreatorUpdateProfileFunction = async (
     .where("creator.creatorID", "==", context.params.userID)
     .get();
 
+  // find all comment where user is the creator
+  const commentQuerySnapshot = await db
+  .collectionGroup("Comment")
+  .where("creator.creatorID", "==", context.params.userID)
+  .get();
+
   const batch = db.batch();
 
   postQuerySnapshot.forEach((doc) => {
@@ -33,11 +40,6 @@ export const updatePostAndCommentWhenCreatorUpdateProfileFunction = async (
     batch.update(postRef, { creator: newCreator });
   });
 
-  // find all comment where user is the creator
-  const commentQuerySnapshot = await db
-    .collectionGroup("Comment")
-    .where("creator.creatorID", "==", context.params.userID)
-    .get();
 
   commentQuerySnapshot.forEach((doc) => {
     const commentRef = doc.ref;
