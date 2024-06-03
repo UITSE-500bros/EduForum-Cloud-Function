@@ -24,7 +24,6 @@ import {
 } from "./post-comment/timestamp";
 import {
   addSampleCategoryFunction,
-  addUserDefaultDepartmentFunction,
   createNewPostForUITCommunityFunction,
   createSubscriptionSubcollectionFunction,
 } from "./community/community-setup";
@@ -215,9 +214,9 @@ export const addSampleCategory = functions.firestore
   .onCreate(addSampleCategoryFunction);
 
 // add user to their default department
-export const addUserDefaultDepartment = functions.firestore
-  .document("/User/{documentId}")
-  .onCreate(addUserDefaultDepartmentFunction);
+// export const addUserDefaultDepartment = functions.firestore
+//   .document("/User/{documentId}")
+//   .onCreate(addUserDefaultDepartmentFunction);
 
 // create empty subscription subcollection when new community is created
 export const createSubscriptionSubcollection = functions.firestore
